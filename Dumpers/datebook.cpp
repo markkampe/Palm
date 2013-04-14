@@ -7,76 +7,12 @@
 
 #include <stdio.h>
 #include <stdlib.h>
+#include <string.h>
 #include <time.h>
 #include "palmarchive.h"
 #include "appt.h"
 
-bool verbose = true;
-
-
-#define	FIELDS_PER_DATEBOOK_ENTRY	15
-
-Appt *datebook_entry( PalmArchive * );
-
-int main( int argc, char **argv ) {
-
-	const char *name = argv[1];
-	PalmArchive *arc = new PalmArchive( name );
-	const char *err = arc->error();
-	if (err) {
-		fprintf( stderr, "Error (%s) initializing %s\n", 
-			err, name );
-		return( 1 );
-	}
-
-	if (verbose) {
-		printf( "Palm Archve: %s\n", name );
-		printf( "     TYPE=%s (0x%08lx)\n", arc->typeName(), arc->fileType() );
-		printf( "     filename=%s\n", arc->fileName() );
-		printf( "     header=%s\n", arc->headerString() );
-	}
-
-	if (arc->fileType() != arc->DBA_SIG) {
-		fprintf( stderr, "%s is not a Datebook Archive, type=0x%08lx\n",
-			name, arc->fileType() );
-		delete arc;
-		return( 1 );
-	}
-
-	// the next 4-bytes should be the number of datebook entries
-	// multiplied by 15 (number of fields per entry)
-	long num_entry = arc->readUlong();
-	if (num_entry % FIELDS_PER_DATEBOOK_ENTRY != 0) {
-		fprintf( stderr, "# datebook entries (%ld) not a multiple of %d\n",
-			num_entry, FIELDS_PER_DATEBOOK_ENTRY );
-	}
-	num_entry /= FIELDS_PER_DATEBOOK_ENTRY;
-
-	if (num_entry < 0 || num_entry > 1000000) {
-		fprintf( stderr, "Unreasonable number of datebook entries: %ld\n",
-			num_entry );
-		delete arc;
-		return( 1 );
-	}
-	if (verbose) {
-		printf( "     num_entries=%ld\n", num_entry );
-	}
-
-	for( int i = 0; i < num_entry; i++ ) {
-		Appt *a = datebook_entry( arc );
-		if (a) {
-			a->summarize( i+1 );
-//			a->dump_vcal( i+1 );
-//			a->dump_vcalendar( );
-			
-			// we're done with this one
-			delete a;
-		}
-	}
-	
-	delete arc;
-	return( 0 );
-}
+extern bool verbose;
 
 /*
  * routine:	nonewlines
@@ -251,4 +187,52 @@ Appt *datebook_entry( PalmArchive *pa ) {
 	thisappt->pvt = pvt;
 
 	return( thisappt );
+}
+
+
+/*
+ * process a datebook archive
+ */
+int process_datebook( PalmArchive *arc, const char *format ) {
+
+#define	FIELDS_PER_DATEBOOK_ENTRY	15
+
+	// make sure that it is, in fact, a datebook archive
+	if (arc->fileType() != arc->DBA_SIG)
+		return 1;
+
+	// the next 4-bytes should be the number of datebook entries
+	// multiplied by 15 (number of fields per entry)
+	long num_entry = arc->readUlong();
+	if (num_entry % FIELDS_PER_DATEBOOK_ENTRY != 0) {
+		fprintf( stderr, "# datebook entries (%ld) not a multiple of %d\n",
+			num_entry, FIELDS_PER_DATEBOOK_ENTRY );
+	}
+	num_entry /= FIELDS_PER_DATEBOOK_ENTRY;
+
+	if (num_entry < 0 || num_entry > 1000000) {
+		fprintf( stderr, "Unreasonable number of datebook entries: %ld\n",
+			num_entry );
+		return( 1 );
+	}
+	if (verbose) {
+		printf( "     num_entries=%ld\n", num_entry );
+	}
+
+	for( int i = 0; i < num_entry; i++ ) {
+		Appt *a = datebook_entry( arc );
+		if (a) {
+			if (format != 0 && strcmp(format, "vcal") == 0)
+				a->dump_vcal( i+1 );
+			else if (format != 0 && strcmp(format, "vcalendar") == 0)
+				a->dump_vcalendar();
+			else
+				a->summarize( i+1 );
+
+			// we're done with this one
+			delete a;
+		}
+	}
+
+	return( 0 );
 }

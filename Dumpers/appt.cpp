@@ -3,6 +3,8 @@
  *
  * purpose:	operations on generic appointments
  *
+ *   (at this point, limited to dumping them specified formats)
+ *
  */
 
 #include <stdio.h>

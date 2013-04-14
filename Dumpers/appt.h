@@ -36,7 +36,7 @@ class Appt {
 		}
 	}
 
-	bool dump_vcalendar( );
-	bool dump_vcal( int  );
-	bool summarize( int );
+	bool dump_vcalendar( );		// vcalendar
+	bool dump_vcal( int  );		// vcal
+	bool summarize( int );		// one liner
 };

@@ -12,9 +12,11 @@
 
 #include "palmarchive.h"
 #include <stdlib.h>
+#include <string.h>
 
 // sanity check limits
 static const int MAX_CATEGORIES = 64;
+static const int MAGIC_CAT = 1735289204L;
 
 /*
  * method: constructor (for an already open file)
@@ -96,7 +98,7 @@ char *PalmArchive::readCstring( ) {
 	char *newstr = (char *) malloc( len+1 );
 	int ret;
 	if ((ret = fread( newstr, 1, len, _file )) != len ) {
-fprintf(stderr,"Tried to read %d bytes, got %d\n", len, ret );
+		fprintf(stderr,"Tried to read %d bytes, got %d\n", len, ret );
 		_errstr = "Cstring short read";
 		free( newstr );
 		return( 0 );
@@ -178,15 +180,22 @@ bool PalmArchive::readHeader( ) {
 	_filename = readCstring();
 	if (_errstr)
 		return( false );
+	else if (_filename == 0)
+		_filename = strdup("NONE");
 
 	_header = readCstring();
 	if (_errstr)
 		return( false );
+	else if (_header == 0)
+		_header = strdup("NONE");
 
 	// figure out how many categories there are, and read them in
 	int freecat = readUlong();	// first free category
 	_num_categories = readUlong();	// number of categories
-	if (_num_categories > MAX_CATEGORIES) {
+	if (_num_categories == MAGIC_CAT) {
+		_errstr = "unrecognized MAGIC categories";
+		return( false );
+	} else if (_num_categories > MAX_CATEGORIES) {
 		_errstr = "too many categories";
 		return( false );
 	}
