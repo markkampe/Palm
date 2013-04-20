@@ -1,0 +1,11 @@
+I created this program to convert old palm archive calendar appointments into vcalendar
+entries so I could re-import them into a contemporary calendar ... and google calendar
+was able to correctly eat this output.
+
+I was going to do the memo, address book, and todo lists to, but then I discovered
+that those archives were not in the documented format.  So I left those incomplete
+(not having any data to test them against).
+
+I doubt that anyone will ever want or need this again, but here it sits, patiently
+waiting.
+

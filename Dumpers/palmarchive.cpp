@@ -18,6 +18,9 @@
 static const int MAX_CATEGORIES = 64;
 static const int MAGIC_CAT = 1735289204L;
 
+extern bool verbose;
+extern bool whiny;
+
 /*
  * method: constructor (for an already open file)
  */
@@ -36,6 +39,9 @@ PalmArchive::PalmArchive( const char *filename ) {
 		_errstr = "Unable to open file";
 		return;
 	}
+	if (verbose)
+		fprintf(stderr, "Palm Archive: %s\n", filename);
+
 	init();
 }
 
@@ -176,55 +182,74 @@ bool PalmArchive::readHeader( ) {
 	_filetype = readUlong();
 	if (_errstr)
 		return( false );
+	if (verbose)
+		fprintf(stderr, "   Type=0x%lx (%s)\n", _filetype, typeName());
 
 	_filename = readCstring();
 	if (_errstr)
 		return( false );
 	else if (_filename == 0)
 		_filename = strdup("NONE");
+	if (verbose)
+		fprintf(stderr, "   filename = %s\n", _filename);
 
 	_header = readCstring();
 	if (_errstr)
 		return( false );
 	else if (_header == 0)
 		_header = strdup("NONE");
+	if (whiny)
+		fprintf(stderr, "   header = %s\n", _header);
 
 	// figure out how many categories there are, and read them in
 	int freecat = readUlong();	// first free category
 	_num_categories = readUlong();	// number of categories
 	if (_num_categories == MAGIC_CAT) {
-		_errstr = "unrecognized MAGIC categories";
-		return( false );
+		_num_categories = 0;
+		if (whiny)
+			fprintf(stderr, "   categories = MAGIC\n");
 	} else if (_num_categories > MAX_CATEGORIES) {
 		_errstr = "too many categories";
 		return( false );
+	} else if (whiny)
+		fprintf(stderr, "   categories = %d\n", _num_categories);
+
+	if (_num_categories > 0) {
+		_categories = (char **) malloc( _num_categories * sizeof (char **) );
+		for( int i = 0; i < _num_categories; i++ ) {
+			_categories[i] = readCategory();
+			if (whiny)
+				fprintf(stderr, "   Cat %d/%d: %s\n", i, _num_categories, _categories[i]);
+		}
 	}
 
-	_categories = (char **) malloc( _num_categories * sizeof (char **) );
-	for( int i = 0; i < _num_categories; i++ ) {
-		_categories[i] = readCategory();
-	}
 	if (_errstr)
 		return( false );
 
 	/*
-	 * I don't understand the schema record stuff
-	 * so, for now, I am ignoring it
+	 * the schema fields identify the type of each field in the
+	 * record ... but my readers are hard-coded for the known formats
+	 * and so we ignore (read and discard) these.
 	 */
-	// I'm not sure what a schema is, and I'm pretty sure I don't care
 	int rsrcid = readUlong();
-	int fldsPerRow = readUlong();	// ???
+	_width = readUlong();		// number of fields per entry
 	int posIndex = readUlong();	// ???
 	int stsIndex = readUlong();	// ???
 	int plcIndex = readUlong();	// ???
 	int numfield = readUshort();	// number of schema fields
+	if (whiny)
+		fprintf(stderr, "   schema fields = %d (", numfield);
 	for( int i = 0; i < numfield; i++ ) {
-		(void) readUshort();
+		unsigned short s = readUshort();
+		if (whiny)
+			fprintf(stderr, (i == 0) ? "%d" : ",%d", s);
 	}
+	if (whiny)
+		fprintf(stderr, ")\n");
 	if (_errstr)
 		return( false );
 	
-	// and now we should be at the good part
+	// and now we should be positioned at the real records
 	return( true );
 }
 

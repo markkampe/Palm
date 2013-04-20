@@ -8,6 +8,9 @@
  *		structure.  Rather they are byte streams with
  *		embededd types and counts that tell you how to
  *		interpret the bytes that follow.
+ *
+ *		This object represents the common header,
+ *		after which file type specific functions take over
  */
 #include <stdio.h>
 
@@ -36,6 +39,7 @@ class PalmArchive {
 		else
 			return( _categories[i] );
 	}
+	int fields_per_row()	{ return( _width ); }
 
 	// known archive types
 	static const unsigned long DBA_SIG = 0x44420100UL;
@@ -75,4 +79,5 @@ class PalmArchive {
 	char	*_header;
 	int	_num_categories;
 	char	**_categories;
+	int		_width;
 };

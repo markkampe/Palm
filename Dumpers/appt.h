@@ -16,6 +16,7 @@ class Appt {
 	char	*summary;
 	char	*description;
 	bool	pvt;
+	bool	allday;
 
 	Appt() {
 		start_time = 0;
@@ -23,20 +24,26 @@ class Appt {
 		summary = 0;
 		description = 0;
 		pvt = 0;
+		allday = 0;
+		next = 0;
+		last = 0;
 	}
 
-	~Appt() {
-		if (summary) {
-			free( summary );
-			summary = 0;
-		}
-		if (description) {
-			free( description );
-			description = 0;
-		}
-	}
+	~Appt();
 
-	bool dump_vcalendar( );		// vcalendar
-	bool dump_vcal( int  );		// vcal
-	bool summarize( int );		// one liner
+	void add(time_t new_time);
+
+	// vcalendar output functions
+	static void header();
+	bool dump_vcalendar( );
+	static void trailer();
+
+	// one line summary
+	bool summarize( int );
+
+   private:
+	struct repetition {
+		time_t start_time;
+		struct repetition *next;
+	} *next, *last;
 };
